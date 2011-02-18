@@ -8,22 +8,22 @@ The core of bake is a dependency rewite engine that works on graphs, with an acc
 The goal of bake is to unify dependency management (conditional building and execution of software) across several traditionally isolated phases of the software lifecycle, including:
 
 *) host build environment - fetching, building and configuring the xomb build environment on a non-xomb host (cross compilers, binutils, foreign build tools, and possibly foreign package managers)
- and also rebuilding these tools when customizations (like our newlib stubs) change. only build language toolchains for those languages currently used to build the OS
+ and also rebuilding these tools when customizations (like our newlib stubs) change. only build language toolchains for those languages currently needed
 
-*) XOmB kernel and executable build tool - 32 binary-only dss and waf's python dependency make us sad.  tools should be easy to run on XOmB as well as host
+*) XOmB kernel and executable build tool - 32 binary-only dsss and waf's python dependency make us sad.  tools should be easy to run on XOmB as well as host
 
 *) OS image production - build bootable ISO and XOmB native environment (embeddedfs)
 
 *) bootstrapping XOmB native development - ability to identify, produce and include networked and no-net dependencies sets to allow native use of bake
 
-*) XOmB native development - 
+*) XOmB native development -  just like the second case, but XOmB native
 
-*) init scripts - system boot up also involves executing processes with dependencies.  would be especially nice to build fresh copies of services that have been updated
+*) init scripts - system boot up also involves executing processes with dependency chains (e.g. network must be up to start sshd).  would be especially nice to build fresh copies on the fly of services that have been updated
 
 
 Secondary goals:
 
-*) parallelism - use all my cores without artificially siloing different phases of the build 
+*) parallelism - use all my cores without artificially siloing different phases of the build  (4 cores may be free, but portage/apt/pacman only process one package at a time)
 
 *) minimizing dependency set - bake should be able to build as many of its own dependencies as possible
 
