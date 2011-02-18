@@ -20,6 +20,7 @@ The goal of boomstick is to unify dependency management (conditional building an
 
 *) init scripts - system boot up also involves executing processes with dependency chains (e.g. network must be up to start sshd).  would be especially nice to build fresh copies on the fly of services that have been updated
 
+*) testing - rerun tests for code whose dependencies have changed.  rebuild different versions if tests fail.
 
 Secondary goals:
 
@@ -27,8 +28,9 @@ Secondary goals:
 
 *) minimizing dependency set - boomstick should be able to build as many of its own dependencies as possible
 
-*) easy-mode package integration - allow opaque use of make, cmake etc. for easy porting of external code
+*) easy-mode package integration - allow opaque use of make, cmake etc. for easy test-integration of external code
 
 *) automatic dependency extraction - easy migration path to boomstick-native building of common styles of external projects
 
-*) git integration - use git for package management metadata as well as source code.  allow expression of dependencies in terms of git revisions
+*) git integration - use git for package management metadata as well as source code.  allow expression of dependencies in terms of git revisions.  provide rollback of installed software
+
