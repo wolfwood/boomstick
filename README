@@ -1,11 +1,11 @@
-Bake is a dependency manager for XOmB.
+Boomstick is a dependency manager for XOmB.
 
 Inspired by our love of git and the D language's import mechanism, the XOmB crew has long desired to reinvent the way we manage our software.
 
-The core of bake is a dependency rewite engine that works on graphs, with an accompanying serialization language based on the GraphViz dot format.
+The core of boomstick is a dependency rewite engine that works on graphs, with an accompanying serialization language based on the GraphViz dot format.
 
 
-The goal of bake is to unify dependency management (conditional building and execution of software) across several traditionally isolated phases of the software lifecycle, including:
+The goal of boomstick is to unify dependency management (conditional building and execution of software) across several traditionally isolated phases of the software lifecycle, including:
 
 *) host build environment - fetching, building and configuring the xomb build environment on a non-xomb host (cross compilers, binutils, foreign build tools, and possibly foreign package managers)
  and also rebuilding these tools when customizations (like our newlib stubs) change. only build language toolchains for those languages currently needed
@@ -14,21 +14,23 @@ The goal of bake is to unify dependency management (conditional building and exe
 
 *) OS image production - build bootable ISO and XOmB native environment (embeddedfs)
 
-*) bootstrapping XOmB native development - ability to identify, produce and include networked and no-net dependencies sets to allow native use of bake
+*) bootstrapping XOmB native development - ability to identify, produce and include networked and no-net dependencies sets to allow native use of boomstick
 
 *) XOmB native development -  just like the second case, but XOmB native
 
 *) init scripts - system boot up also involves executing processes with dependency chains (e.g. network must be up to start sshd).  would be especially nice to build fresh copies on the fly of services that have been updated
 
+*) testing - rerun tests for code whose dependencies have changed.  rebuild different versions if tests fail.
 
 Secondary goals:
 
 *) parallelism - use all my cores without artificially siloing different phases of the build  (4 cores may be free, but portage/apt/pacman only process one package at a time)
 
-*) minimizing dependency set - bake should be able to build as many of its own dependencies as possible
+*) minimizing dependency set - boomstick should be able to build as many of its own dependencies as possible
 
-*) easy-mode package integration - allow opaque use of make, cmake etc. for easy porting of external code
+*) easy-mode package integration - allow opaque use of make, cmake etc. for easy test-integration of external code
 
-*) automatice dependency extraction - easy migration path to bake native building of external projects
+*) automatic dependency extraction - easy migration path to boomstick-native building of common styles of external projects
 
-*) git integration - use git for package management metadata as well as source code.  allow expression of dependencies in terms of git revisions
+*) git integration - use git for package management metadata as well as source code.  allow expression of dependencies in terms of git revisions.  provide rollback of installed software
+
