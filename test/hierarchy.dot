@@ -1,0 +1,9 @@
+digraph revolution {
+
+B [label="The boss"]      // node B
+E [label="The employee"]  // node E
+
+B->E [label="commands", dir=back, fontcolor=red]  
+// reverse arrow direction 
+
+}
