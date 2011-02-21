@@ -2,7 +2,7 @@ Boomstick is a dependency manager for XOmB.
 
 Inspired by our love of git and the D language's import mechanism, the XOmB crew has long desired to reinvent the way we manage our software.
 
-The core of boomstick is a dependency rewite engine that works on graphs, with an accompanying serialization language based on the GraphViz dot format.
+The core of boomstick is a dependency rewite engine that works on graphs, with an accompanying serialization language inspired by the GraphViz dot format.
 
 
 The goal of boomstick is to unify dependency management (conditional building and execution of software) across several traditionally isolated phases of the software lifecycle, including:
@@ -10,27 +10,31 @@ The goal of boomstick is to unify dependency management (conditional building an
 *) host build environment - fetching, building and configuring the xomb build environment on a non-xomb host (cross compilers, binutils, foreign build tools, and possibly foreign package managers)
  and also rebuilding these tools when customizations (like our newlib stubs) change. only build language toolchains for those languages currently needed
 
-*) XOmB kernel and executable build tool - 32 binary-only dsss and waf's python dependency make us sad.  tools should be easy to run on XOmB as well as host
+*) XOmB kernel and executable build tool - 32bit binary-only dsss and waf's python dependency make us sad.  tools should be easy to run on XOmB as well as host
 
 *) OS image production - build bootable ISO and XOmB native environment (embeddedfs)
 
-*) bootstrapping XOmB native development - ability to identify, produce and include networked and no-net dependencies sets to allow native use of boomstick
+*) bootstrapping XOmB native development - ability to identify, produce and include networked and no-net dependencies sets to allow native bootstrapping and use of boomstick
 
-*) XOmB native development -  just like the second case, but XOmB native
+*) XOmB native development -  just like the second case, but XOmB native.  being able to switch tools and languages is key.  for example a native job scheduler for XOmB will be fun to write
 
 *) init scripts - system boot up also involves executing processes with dependency chains (e.g. network must be up to start sshd).  would be especially nice to build fresh copies on the fly of services that have been updated
 
-*) testing - rerun tests for code whose dependencies have changed.  rebuild different versions if tests fail.
+*) testing - rerun tests for code whose dependencies have changed.  rebuild different versions if tests fail.  limit the damage boomstick delevelopers can cause to a live system :)
+
 
 Secondary goals:
 
-*) parallelism - use all my cores without artificially siloing different phases of the build  (4 cores may be free, but portage/apt/pacman only process one package at a time)
+*) stability - OS development may be a bleeding edge gig, but those employing this tool for package managment should be protected from tool and upstream package developers 'breaking the build'.  in addition, greater introspection into package build process may reduce the number of cyclical dependencies and other kinds of 'should work but doesn't' situations that particularly infuriate us :)
 
-*) minimizing dependency set - boomstick should be able to build as many of its own dependencies as possible
+*) parallelism - source build tools should be trivially parallelizable, but aren't. boomstick will attempt to use all cores without artificially siloing different phases of the build  (4 cores may be free, but portage/apt/pacman only process one package at a time). this is made possible by information sharing (actually complete merging) between package management and build scripts
 
-*) easy-mode package integration - allow opaque use of make, cmake etc. for easy test-integration of external code
-
-*) automatic dependency extraction - easy migration path to boomstick-native building of common styles of external projects
+*) minimizing dependency set - boomstick should be able to build as many of its own dependencies as possible.  multiple implementations in numerous interpreted and compiled languages will help make the most of the host enviroment to bootstrap a boomstick install.  a text serialization format and testable interfaces are effectively required to maintain compatability and coherency across this diversity of implementations.
 
 *) git integration - use git for package management metadata as well as source code.  allow expression of dependencies in terms of git revisions.  provide rollback of installed software
 
+*) easy-mode package integration - allow opaque use of make, cmake etc. for easy test-integration of external code
+
+*) automatic dependency extraction - ease the migration path to boomstick-native building of common styles of external projects
+
+*) reducing users' need for language-specific package managers - I dig cabal and hear good things about the ruby community's solutions, but having one package manager is annoying enough, thanks :) the easiest way to do this may be to provide a good way to wrap package managers in the same way we want to wrap make, but the long run vision is probably to import their metadata
