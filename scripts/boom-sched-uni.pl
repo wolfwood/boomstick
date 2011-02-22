@@ -64,6 +64,10 @@ sub doAction{
 
 		}elsif($action eq "userdcompile"){
 
+		}elsif($action eq "elfbinarydump"){
+
+		}elsif($action eq "flatbinarydump"){
+
 		}else{
 				print STDERR "unknown: $action\n";
 		}
