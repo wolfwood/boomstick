@@ -8,21 +8,78 @@ import tango.text.Ascii;
 
 // --- silly imperative driver ---
 void main(char[][] argv){
-	//Stdout("OHAI.  I'm a boomstick.\n");
-
 
 	// --- Parse ---
 	Graph g = parseDot(Cin);
 
+	g.processNodes();
+
+
 	// --- Print ---
-	g.root.print();
+	//g.root.print();
 	
-	// --- Prune based on timestamps ---
+
+	// --- Prune based on timestamps ---	
+
+	// create simplified graph by backtracking from sinks (nodes without
+	// child edges, excluding subgraphs and .o files
+	/*
+	foreach(n; g.sources){
+		Stdout(n.name).newline;
+	}
+	*/
+	// - skipped -
+
 	
+	// starting now at leaves, compare and propagate latest timestamp,
+	// keeping edges where source modification time is later than
+	// destination
 	
+	// - skipped -
+
 	// --- Schedule ---
 	// optionally: serialize pruned graph for external scheduler
+	// optionally: output a bash script instead of executing
+	
+	traverse(g.sources);
+}
 
+void traverse(Node[] curr){
+	Node[] next;
+	bool[Node] wait;
+
+	while(curr.length != 0){
+		foreach(n; curr){
+			foreach(e; n.children){
+				e.dest.mark();
+
+				if(e.dest.ready()){
+					next ~= e.dest;
+
+					if((e.dest in wait) !is null){
+						wait.remove(e.dest);
+					}
+					
+					// do the action on the edge
+					
+					foreach(f; e.dest.parents){
+						f.print();
+						Stdout.newline;
+					}
+				}else{
+					if(( e.dest in wait) is null){
+						wait[e.dest] = true;
+					}
+				}
+
+			}
+		}
+		
+		curr = next;
+		next = next.init;
+	}
+
+	assert(wait.length == 0);
 }
 
 
@@ -56,7 +113,7 @@ public:
 			}else{
 				Stdout("subgraph ")(name)(" {").newline;
 			}
-			tabs ++;
+			tabs++;
 
 			foreach(a; attrs){
 				printTabs(tabs);
@@ -94,7 +151,27 @@ public:
 			}*/
 	}
 
+	void mark(){
+		_mark++;
+	}
+	
+	void clear(){
+		_mark = 0;
+	}
+
+	bool ready(){
+		assert(_mark <= parents.length, "overmarked.  more marks than incoming edges?!?\n");
+
+		if(_mark == parents.length){
+			return true;
+		}else{
+			return false;
+		}
+	}
+
 private:
+	uint _mark;
+
 	void printTabs(uint tabs){
 		for(uint i = 0; i < tabs; i++){
 			Stdout("  ");
@@ -185,11 +262,11 @@ public:
 
 		if(context is null){
 			n = _root;
-			
-			assert(name == n.name);
-		}
+			n.subgraph = true;
+			dict[name] = n;
 
-		if(name in dict){
+			assert(name == n.name);
+		}else	if(name in dict){
 			n = dict[name];
 
 			if(isSubGraph){
@@ -225,10 +302,25 @@ public:
 		return _root;
 	}
 
+
+	void processNodes(){
+		foreach(n; dict.values){
+			if(n.children.length == 0 && !n.subgraph){
+				if(n.name[($-3)..$] != ".o\""){
+					sinks ~= n;
+				}
+			}
+
+			if(n.parents.length == 0 && !n.subgraph){
+				sources ~= n;
+			}
+		}
+	}
+
 private:
 	Node _root;
 
-	Node[] source, sink;
+	Node[] sources, sinks;
 	Node[string] dict;	
 }
 
@@ -256,26 +348,16 @@ Graph parseDot(Console.Input In){
 				return true;
 			}
 			
-			/*if(ea.test(str)){
-				Stdout("EDGE").newline;
-
-				// new link with attrs
-				Edge edge = graph.addEdge(ea.match(1), ea.match(2), root);
-			
-			}else*/
 			if(e.test(str)){
-				//Stdout("SimpleEDGE").newline;
-				// new link without attrs
-				
+				// new link without attrs				
 				Edge edge = graph.addEdge(e[1], e[2], root);
 
+				// check for attrs
 				foreach(a; at.search(str)){
 					edge.attrs.set(a[1], a[2]);
 				}
 
 			}else if(sg.test(str)){
-				//Stdout("SUBGRAPH").newline;
-
 				// new subgraph
 				// adding the new node to data structures
 				 Node sub = graph.addNode(sg.match(1), root, true);
@@ -292,8 +374,6 @@ Graph parseDot(Console.Input In){
 				}*/
 			}else if(at.test(str)){
 				// attribute
-				//Stdout("ATTR").newline;
-
 				root.attrs.set(at.match(1), at.match(2));
 			}else{
 				Stderr("Problem? ")(str).newline;
