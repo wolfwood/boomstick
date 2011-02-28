@@ -8,7 +8,7 @@ import tango.text.Ascii;
 
 // --- silly imperative driver ---
 void main(char[][] argv){
-	Stdout("OHAI.  I'm a boomstick.\n");
+	//Stdout("OHAI.  I'm a boomstick.\n");
 
 
 	// --- Parse ---
@@ -38,6 +38,7 @@ public:
 
 	bool subgraph;
 	Node[] contents; // only non-null if this is a (sub)graph
+	Edge[] edges;
 
 	// subgraphs containing this node
 	Node[] contexts;
@@ -66,6 +67,12 @@ public:
 				n.print(tabs, false);
 			}
 
+			foreach(e; edges){
+				printTabs(tabs);
+				e.print();
+				Stdout.newline;
+			}
+
 			tabs--;
 			printTabs(tabs);
 			Stdout("}").newline;
@@ -80,11 +87,11 @@ public:
 			Stdout().newline;
 		}
 
-		foreach(e; children){
+		/*foreach(e; children){
 			printTabs(tabs);
 			e.print();
 			Stdout.newline;
-		}
+			}*/
 	}
 
 private:
@@ -92,7 +99,7 @@ private:
 		for(uint i = 0; i < tabs; i++){
 			Stdout("  ");
 		}
-	}
+	} 
 }
 
 class Edge{
@@ -143,13 +150,14 @@ public:
 
 
 	void printList(){
-		Stdout(" [");
+		Stdout("[");
 	
 		bool flag;
 
 		foreach(a; attrs.keys){
 			if(flag){
-				Stdout(",");
+				//Stdout(",");
+				Stdout(" ");
 			}else{
 				flag = true;
 			}
@@ -179,8 +187,14 @@ public:
 			n = _root;
 			
 			assert(name == n.name);
-		}else if(name in dict){
+		}
+
+		if(name in dict){
 			n = dict[name];
+
+			if(isSubGraph){
+				n.subgraph = true;
+			}
 		}else{
 			n = new Node(name, isSubGraph);
 			dict[name] = n;
@@ -191,6 +205,20 @@ public:
 		}
 
 		return n;
+	}
+
+	Edge addEdge(string s, string d, Node context){
+		Node src = addNode(s, context), dest = addNode(d, context);
+
+		Edge ret = new Edge(src, dest);
+
+		src.children ~= ret;
+
+		dest.parents ~= ret;
+
+		context.edges ~= ret;
+
+		return ret;
 	}
 
 	Node root(){
@@ -211,13 +239,14 @@ Graph parseDot(Console.Input In){
 	Graph graph;
 
 	auto m = Regex(`digraph (\S+) \{`);
-
- 	auto e = Regex(`(\S+) -> (\S+)`);
-	auto ea = Regex(`(\S+) -> (\S+) [(\S+)]`);
 	auto sg = Regex(`subgraph (\S+) \{`);
 
-	auto at = Regex(`(\S+)=(\S+)`);
-	auto nat = Regex(`[(\S+)]`);
+	//  "entry.d" -> "entry.o" [action=crossuserdcompile]
+ 	auto e = Regex(`(\S+) \-\> (\S+)`);
+	//auto ea = Regex(`(\S+) -> (\S+) \[([^\]])\]`);
+
+	auto at = Regex(`([^[ ]\S+)=(\S+[^\] ])`);
+	//auto nat = Regex(`\[(\S+)\]`);
 
 	// --- recursive workhorse ---
 	bool subParseDot(Node root){
@@ -227,14 +256,26 @@ Graph parseDot(Console.Input In){
 				return true;
 			}
 			
-			if(ea.test(str)){
+			/*if(ea.test(str)){
+				Stdout("EDGE").newline;
+
 				// new link with attrs
-				
-				
-			}else if(e.test(str)){
+				Edge edge = graph.addEdge(ea.match(1), ea.match(2), root);
+			
+			}else*/
+			if(e.test(str)){
+				//Stdout("SimpleEDGE").newline;
 				// new link without attrs
 				
+				Edge edge = graph.addEdge(e[1], e[2], root);
+
+				foreach(a; at.search(str)){
+					edge.attrs.set(a[1], a[2]);
+				}
+
 			}else if(sg.test(str)){
+				//Stdout("SUBGRAPH").newline;
+
 				// new subgraph
 				// adding the new node to data structures
 				 Node sub = graph.addNode(sg.match(1), root, true);
@@ -242,16 +283,17 @@ Graph parseDot(Console.Input In){
 				// fill in subgraph
 				subParseDot(sub);
 
-			}else if(nat.test(str)){
+				/*}else if(nat.test(str)){
 				// node attrs
 				
-				foreach(z; at.search(str)){
+				foreach(z; nat.search(str)){
 					//z.match
 					
-				}
+				}*/
 			}else if(at.test(str)){
 				// attribute
-				
+				//Stdout("ATTR").newline;
+
 				root.attrs.set(at.match(1), at.match(2));
 			}else{
 				Stderr("Problem? ")(str).newline;
