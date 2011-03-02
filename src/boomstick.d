@@ -14,6 +14,7 @@ void main(char[][] argv){
 
 	g.processNodes();
 
+	traverseNodes(g.root);
 
 	// --- Print ---
 	//g.root.print();
@@ -41,10 +42,20 @@ void main(char[][] argv){
 	// optionally: serialize pruned graph for external scheduler
 	// optionally: output a bash script instead of executing
 	
-	traverse(g.sources);
+	traverseLinks(g.sources);
 }
 
-void traverse(Node[] curr){
+void traverseNodes(Node root){
+	foreach(n; root.contents){
+		n.attrs.merge(root.attrs);
+		
+		if(n.subgraph){
+			traverseNodes(n);
+		}
+	}
+}
+
+void traverseLinks(Node[] curr){
 	Node[] next;
 	bool[Node] wait;
 
@@ -62,10 +73,14 @@ void traverse(Node[] curr){
 					
 					// do the action on the edge
 					
+					act(e);
+
+					/*
 					foreach(f; e.dest.parents){
 						f.print();
 						Stdout.newline;
 					}
+					*/
 				}else{
 					if(( e.dest in wait) is null){
 						wait[e.dest] = true;
@@ -82,6 +97,102 @@ void traverse(Node[] curr){
 	assert(wait.length == 0);
 }
 
+
+void act(Edge e){
+	string cmd;
+
+	switch(e.attrs["action"]){
+	case "crossuserassemble":
+		cmd = "yasm -felf64 ";
+
+		if("AFLAGS" in e.context.attrs){cmd ~= e.context.attrs["AFLAGS"];}
+		if("AFLAGS" in e.attrs){cmd ~= e.attrs["AFLAGS"];}
+
+		cmd ~= " -o "; cmd ~= e.dest.name;
+		cmd ~= " "; cmd ~= e.source.name;
+
+		break;
+
+	case "crossuserdcompile":
+		cmd = "ldc ";
+		cmd ~= "-g -O0 -nodefaultlib -I../.. -I../../runtimes -I../../runtimes/mindrt ";
+		if("DFLAGS" in e.context.attrs){cmd ~= e.context.attrs["DFLAGS"];}
+		if("DFLAGS" in e.attrs){cmd ~= e.attrs["DFLAGS"];}
+
+		cmd ~= " -of"; cmd ~= e.dest.name;
+		cmd ~= " -c "; cmd ~= e.source.name;
+
+		break;
+	case "crosskerneldcompile":
+		cmd = "ldc ";
+		cmd ~= "-O0 -disable-red-zone -d-version=KERNEL -nodefaultlib -I.. -Idsss_imports/. -I../kernel/runtime/. -m64 -code-model=large ";
+		if("DFLAGS" in e.context.attrs){cmd ~= e.context.attrs["DFLAGS"];}
+		if("DFLAGS" in e.attrs){cmd ~= e.attrs["DFLAGS"];}
+
+		cmd ~= " -of"; cmd ~= e.dest.name;
+		cmd ~= " -c "; cmd ~= e.source.name;
+
+		break;
+	case "crossuserlinkflat":
+		cmd = "ld ";
+		cmd ~= "-nostdlib -nodefaultlibs -T../../app/build/flat.ld ";
+		cmd ~= "-o "; cmd ~= e.dest.name;
+
+		foreach(f; e.dest.parents){
+			cmd ~= " "; cmd ~= f.source.name;
+		}
+
+		break;
+	case "crossuserlinkelf":
+		cmd = "ld ";
+		cmd ~= "-nostdlib -nodefaultlibs -T../../build/elf.ld ";
+		cmd ~= "-o "; cmd ~= e.dest.name;
+
+		foreach(f; e.dest.parents){
+			cmd ~= " "; cmd ~= f.source.name;
+		}
+
+		break;
+ 
+	case "crossar":
+		cmd = "ar ";
+		cmd ~= "rcs ";
+		cmd ~= e.dest.name;
+
+		foreach(f; e.dest.parents){
+			cmd ~= " "; cmd ~= f.source.name;
+		}
+
+		break;
+
+	case "crossuserlink":
+		cmd = "ld ";
+		cmd ~= "-nostdlib -nodefaultlibs ";
+		cmd ~= "-o "; cmd ~= e.dest.name;
+
+		foreach(f; e.dest.parents){
+			cmd ~= " "; cmd ~= f.source.name;
+		}
+
+		break;
+
+	case "crosskernellink":
+		cmd ~= " -o "; cmd ~= e.dest.name;
+		cmd ~= " "; cmd ~= e.source.name;
+
+		break;
+	case "flatbinarydump":
+
+	case "elfbinarydump":
+		
+		break;
+	default:
+		Stderr(e.attrs["action"]).newline;
+  	assert(1==0);
+	}
+
+	Stdout/*(e.attrs["action"])(": ")*/(cmd).newline;
+}
 
 class Node{
 public: 
@@ -151,6 +262,17 @@ public:
 			}*/
 	}
 
+	string fullName(){
+		string CWD = "/home/wolfood/repos/boomstick";
+		string reponame = "xomb";
+
+		if(name[(3-$)..$] == `.o"`){
+			return CWD ~ "/obj/" ~ reponame ~ "/" ~ name;
+		}else{
+			return CWD ~ "/repos/" ~ reponame ~ "/" ~ name;
+		}
+	}
+
 	void mark(){
 		_mark++;
 	}
@@ -158,10 +280,10 @@ public:
 	void clear(){
 		_mark = 0;
 	}
-
+	
 	bool ready(){
 		assert(_mark <= parents.length, "overmarked.  more marks than incoming edges?!?\n");
-
+		
 		if(_mark == parents.length){
 			return true;
 		}else{
@@ -184,6 +306,8 @@ class Edge{
 	Node source;
 	Node dest;
 
+	Node context;
+
 	this(Node s, Node d){
 		attrs = new AttrList;
 		
@@ -202,6 +326,10 @@ class Edge{
 
 class AttrList{
 public:
+	void merge(AttrList other){
+
+	}
+
 	bool isEmpty(){
 		return attrs is null;
 	}
@@ -223,6 +351,10 @@ public:
 
 	string opIndex(string key){
 		return attrs[key];
+	}
+	
+	string* opIn_r(string key){
+		return key in attrs;
 	}
 
 
@@ -294,6 +426,9 @@ public:
 		dest.parents ~= ret;
 
 		context.edges ~= ret;
+
+		//ret.contexts ~= context;
+		ret.context = context;
 
 		return ret;
 	}
